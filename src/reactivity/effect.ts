@@ -1,15 +1,32 @@
 class ReactiveEffect {
-    private _fn: () => any;
+    deps: [] = [];
+    active = true
+    onStop?: () => void;
     public scheduler?: () => any;
-    constructor(fn, scheduler?: () => any) {
-        this._fn = fn;
+    constructor(public fn: () => any, scheduler?: () => any) {
+        this.fn = fn;
         this.scheduler = scheduler;
     }
     run() {
         activeEffect = this;
-        return this._fn();
+        return this.fn();
+    }
+    stop() {
+        if (this.active) {
+            cleanupEffect(this);
+            if (this.onStop) {
+                this.onStop();
+            }
+            this.active = false;
+        }
     }
 }
+function cleanupEffect(effect: ReactiveEffect) {
+    effect.deps.forEach((dep: Set<ReactiveEffect>) => {
+        dep.delete(effect);
+    });
+}
+
 const targetMap = new Map();
 export function track(target, key) {
     let depsMap = targetMap.get(target);
@@ -22,7 +39,10 @@ export function track(target, key) {
         dep = new Set();
         depsMap.set(key, dep);
     }
-    dep.add(activeEffect);
+    if (activeEffect) {
+        dep.add(activeEffect);
+        activeEffect.deps.push(dep);
+    }
 }
 export function trigger(target, key) {
     let depsMap = targetMap.get(target);
@@ -41,6 +61,15 @@ export function effect(fn, options: Record<string, any> = {}) {
     // fn
     const scheduler = options.scheduler;
     const _effect = new ReactiveEffect(fn, scheduler);
+    _effect.onStop = options.onStop
+
     _effect.run();
-    return _effect.run.bind(_effect);
+    
+    const runner: any = _effect.run.bind(_effect);
+    runner.effect = _effect;
+    return runner;
+}
+
+export function stop(runner) {
+    runner.effect.stop();
 }
