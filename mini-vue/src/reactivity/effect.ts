@@ -3,7 +3,7 @@ import { extend } from "../shared";
 let activeEffect;
 let shouldTrack;
 
-class ReactiveEffect {
+export class ReactiveEffect {
     deps: [] = [];
     active = true;
     onStop?: () => void;
@@ -22,6 +22,7 @@ class ReactiveEffect {
         shouldTrack = true;
         const result = this.fn();
         shouldTrack = false;
+        activeEffect = undefined;
         return result;
     }
     stop() {
@@ -69,6 +70,7 @@ export function isTracking(){
 
 export function trigger(target, key) {
     let depsMap = targetMap.get(target);
+    if (!depsMap) return;
     let dep = depsMap.get(key);
     triggerEffects(dep)
 }
