@@ -23,9 +23,13 @@ function createActiveObject(raw, baseHandlers) {
 }
 
 export function isReactive(value) {
-    return !!value[ReactiveFlags.IS_REACTIVE]
+    return !!value[ReactiveFlags.IS_REACTIVE];
 }
 
 export function isReadonly(value) {
-    return !!value[ReactiveFlags.IS_READONLY]
+    return !!value[ReactiveFlags.IS_READONLY];
+}
+
+export function isProxy(value) {
+  return isReactive(value) || isReadonly(value);
 }
